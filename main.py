@@ -54,17 +54,19 @@ class DeepStreamProcessor:
 
     def build_decode_pipeline(self):
         """
-        从RTSP拉流，解码并输出BGR格式CPU侧帧。
+        从RTMP拉流，解码并输出BGR格式CPU侧帧。
         注意加上queue，适当控制流量/缓冲。
         """
         decode_pipeline_desc = f"""
-            rtspsrc location={self.rtsp_url} latency=100 do-retransmission=true !
+            rtmpsrc location={self.rtsp_url} latency=300 do-retransmission=true !
             queue !
-            rtph264depay ! h264parse !
+            flvdemux !
+            h264parse !
             nvv4l2decoder !
             queue !
             nvvideoconvert !
             video/x-raw,format=BGR,width={self.width},height={self.height},framerate={self.framerate}/1 !
+            queue !
             appsink name=appsink0 emit-signals=true sync=false max-buffers=30 drop=true
         """
         self.decode_pipeline = Gst.parse_launch(decode_pipeline_desc)
